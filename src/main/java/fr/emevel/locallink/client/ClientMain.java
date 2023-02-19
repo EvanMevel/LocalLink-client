@@ -1,6 +1,7 @@
-package fr.emevel.locallink;
+package fr.emevel.locallink.client;
 
 import fr.emevel.locallink.network.InetAddressUtils;
+import fr.emevel.locallink.network.Signatures;
 import fr.emevel.locallink.network.packets.PacketHandShake;
 import fr.emevel.locallink.network.serial.PacketParsingException;
 
@@ -16,7 +17,7 @@ public class ClientMain {
 
         client.start();
 
-        client.sendPacket(new PacketHandShake("LocalLink Client", "1.0"));
+        client.sendPacket(new PacketHandShake("LocalLink Client", Signatures.VERSION));
 
         Scanner scanner = new Scanner(System.in);
 
