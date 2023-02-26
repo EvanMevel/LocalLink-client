@@ -16,14 +16,17 @@ public class LocalLinkClientServer extends LinkSocket {
     private final FileReceiverExecutor fileReceiverExecutor;
 
     private final File baseFolder = new File("client");
+    private final LocalLinkClientData data;
 
-    public LocalLinkClientServer(Socket socket) throws IOException {
+    public LocalLinkClientServer(LocalLinkClientData data, Socket socket) throws IOException {
         super(socket);
+        this.data = data;
         packetConsumerList.addConsumer(PacketHandShake.class, this::handshake);
         packetConsumerList.addConsumer(PacketAskFolders.class, this::askedFolders);
         packetConsumerList.addConsumer(PacketAskFiles.class, this::askedFiles);
         packetConsumerList.addConsumer(PacketSendFile.class, this::sendingFile);
         packetConsumerList.addConsumer(PacketDeleteFiles.class, this::deleteFiles);
+        packetConsumerList.addConsumer(PacketCreateLink.class, this::createLink);
 
         fileReceiverExecutor = new FileReceiverExecutor(socket.getInetAddress(), 1024);
     }
@@ -51,9 +54,14 @@ public class LocalLinkClientServer extends LinkSocket {
 
     private void askedFiles(PacketAskFiles packet) {
         System.out.println("Received folder list packet " + packet);
-        File folder = new File(baseFolder, packet.getFolder());
+
+        File folder = data.getFolders().get(packet.getFolder());
+        if (folder == null) {
+            System.out.println("Folder " + packet.getFolder() + " not found");
+            return;
+        }
         try {
-            List<PacketFileList> packets = PacketFileList.builder().processFolder(folder).build();
+            List<PacketFileList> packets = PacketFileList.builder().processFolder(packet.getFolder(), folder).build();
             safeSendPacket(packets);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -62,17 +70,32 @@ public class LocalLinkClientServer extends LinkSocket {
 
     private void sendingFile(PacketSendFile packet) {
         System.out.println("Received file packet " + packet);
-        File file = new File(baseFolder, packet.getFolder() + File.separator + packet.getName());
+        File folder = data.getFolders().get(packet.getFolder());
+        if (folder == null) {
+            System.out.println("Folder " + packet.getFolder() + " not found");
+            return;
+        }
+        File file = new File(folder, packet.getName());
         fileReceiverExecutor.execute(file, packet.getPort(), packet.getLength());
     }
 
     private void deleteFiles(PacketDeleteFiles packet) {
         System.out.println("Received delete files packet " + packet);
-        File folder = new File(baseFolder, packet.getFolder());
+        File folder = data.getFolders().get(packet.getFolder());
+        if (folder == null) {
+            System.out.println("Folder " + packet.getFolder() + " not found");
+            return;
+        }
         for (String file : packet.getFiles()) {
             System.out.println("Deleting file " + new File(folder, file).getAbsoluteFile());
             new File(folder, file).delete();
         }
+    }
+
+    private void createLink(PacketCreateLink packet) {
+        System.out.println("Received link folder packet " + packet);
+        File folder = new File(baseFolder, packet.getFolderName());
+        data.getFolders().put(packet.getFolderUuid(), folder);
     }
 
     @Override
