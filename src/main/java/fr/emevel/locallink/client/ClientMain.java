@@ -1,20 +1,13 @@
 package fr.emevel.locallink.client;
 
-import fr.emevel.locallink.network.InetAddressUtils;
-import fr.emevel.locallink.network.Signatures;
-import fr.emevel.locallink.network.packets.PacketHandShake;
 import fr.emevel.locallink.network.serial.PacketParsingException;
 
 import java.io.*;
-import java.net.Socket;
 import java.util.Scanner;
 
 public class ClientMain {
 
-    public static LocalLinkClientServer server;
-
-    private static void save(LocalLinkClientData data) throws IOException {
-        File file = new File("client.dat");
+    public static void saveDataToFile(LocalLinkClientData data, File file) throws IOException {
         if (!file.exists()) {
             file.createNewFile();
         }
@@ -23,11 +16,10 @@ public class ClientMain {
         }
     }
 
-    private static LocalLinkClientData loadData() throws IOException {
-        File file = new File("client.dat");
+    public static LocalLinkClientData loadDataFromFile(File file) throws IOException {
         if (!file.exists()) {
             LocalLinkClientData data = new LocalLinkClientData();
-            save(data);
+            saveDataToFile(data, file);
             return data;
         }
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))){
@@ -38,21 +30,24 @@ public class ClientMain {
     }
 
     public static void main(String[] args) throws IOException, PacketParsingException {
+        LocalLinkClientData data = loadDataFromFile(new File("client.dat"));
 
-        LocalLinkClientData data = loadData();
+        Runnable saver = () -> {
+            try {
+                saveDataToFile(data, new File("client.dat"));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        };
 
-        Socket socket = new Socket(InetAddressUtils.getLocalHostLANAddress(), 4242);
+        LocalLinkClient client = new LocalLinkClient(data, new File("client"), saver);
 
-        server = new LocalLinkClientServer(data, socket);
-
-        server.start();
-
-        server.sendPacket(new PacketHandShake(data.getName(), data.getUuid(), Signatures.VERSION));
+        client.start();
 
         Scanner scanner = new Scanner(System.in);
 
         scanner.nextLine();
 
-        server.stop();
+        client.stop();
     }
 }

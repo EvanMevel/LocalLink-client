@@ -28,6 +28,6 @@ public class FileReceiverExecutor {
     }
 
     public void execute(File destination, int port, long length) {
-        executor.execute(new FileReceiver(destination, address, port, bufferSize, length));
+        executor.submit(new FileReceiver(destination, address, port, bufferSize, length));
     }
 }

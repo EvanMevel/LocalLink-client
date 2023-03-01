@@ -57,6 +57,7 @@ public class FileReceiver implements Runnable {
 
     private void connect() throws IOException {
         socket = new Socket(address, port);
+        System.out.println("Connected to " + socket.getInetAddress() + ":" + socket.getPort());
     }
 
     @Override

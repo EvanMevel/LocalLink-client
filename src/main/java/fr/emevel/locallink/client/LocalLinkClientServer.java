@@ -15,12 +15,15 @@ public class LocalLinkClientServer extends LinkSocket {
 
     private final FileReceiverExecutor fileReceiverExecutor;
 
-    private final File baseFolder = new File("client");
+    private final File baseFolder;
     private final LocalLinkClientData data;
+    private final Runnable dataSaver;
 
-    public LocalLinkClientServer(LocalLinkClientData data, Socket socket) throws IOException {
+    public LocalLinkClientServer(LocalLinkClientData data, Socket socket, File baseFolder, Runnable dataSaver) throws IOException {
         super(socket);
         this.data = data;
+        this.baseFolder = baseFolder;
+        this.dataSaver = dataSaver;
         packetConsumerList.addConsumer(PacketHandShake.class, this::handshake);
         packetConsumerList.addConsumer(PacketAskFolders.class, this::askedFolders);
         packetConsumerList.addConsumer(PacketAskFiles.class, this::askedFiles);
@@ -53,7 +56,7 @@ public class LocalLinkClientServer extends LinkSocket {
     }
 
     private void askedFiles(PacketAskFiles packet) {
-        System.out.println("Received folder list packet " + packet);
+        System.out.println("Received ask file packet " + packet);
 
         File folder = data.getFolders().get(packet.getFolder());
         if (folder == null) {
@@ -95,7 +98,14 @@ public class LocalLinkClientServer extends LinkSocket {
     private void createLink(PacketCreateLink packet) {
         System.out.println("Received link folder packet " + packet);
         File folder = new File(baseFolder, packet.getFolderName());
+        if (!folder.exists()) {
+            if (!folder.mkdirs()) {
+                System.err.println("Failed to create folder " + folder.getAbsolutePath());
+                return;
+            }
+        }
         data.getFolders().put(packet.getFolderUuid(), folder);
+        dataSaver.run();
     }
 
     @Override
