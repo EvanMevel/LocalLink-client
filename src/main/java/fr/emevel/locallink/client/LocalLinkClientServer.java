@@ -51,7 +51,7 @@ public class LocalLinkClientServer extends LinkSocket {
 
     private void askedFolders(PacketAskFolders packet) {
         safeSendPacket(
-                PacketFolderList.builder().addFolder(baseFolder).build()
+                PacketFolderList.builder().setDeep(false).addFolder(baseFolder).build()
         );
     }
 
@@ -106,6 +106,7 @@ public class LocalLinkClientServer extends LinkSocket {
         }
         data.getFolders().put(packet.getFolderUuid(), folder);
         dataSaver.run();
+        safeSendPacket(new PacketLinkCreated(packet.getFolderUuid()));
     }
 
     @Override

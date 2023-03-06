@@ -14,10 +14,18 @@ import java.util.UUID;
 public class LocalLinkClientData implements Serializable {
 
     private UUID uuid = UUID.randomUUID();
-    private String name = InetAddress.getLocalHost().getHostName();
+    private String name = getLocalHostName();
     private Map<UUID, File> folders = new HashMap<>();
 
-    public LocalLinkClientData() throws UnknownHostException {
+    public LocalLinkClientData() {
+    }
+
+    private static String getLocalHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            return "Unknown";
+        }
     }
 
 }

@@ -24,7 +24,7 @@ public class LocalLinkClient implements BiConsumer<InetSocketAddress, ServiceInf
         this.data = data;
         this.baseFolder = baseFolder;
         this.dataSaver = dataSaver;
-        client = new JmDNSClient(this);
+        client = new JmDNSClient(this, data.getUuid());
     }
 
     public void start() throws IOException {
